@@ -32,8 +32,10 @@ def update_elo_ratings_from_matches(match_data_path, elo_json_path, new_elo_json
 
     for _, row in match_data.iterrows():
         player_name = row[1]
+        # 若選手不在初始ELO列表中，新增選手並設定初始ELO為1400
         if player_name not in initial_player_ratings:
-            continue
+            initial_player_ratings[player_name] = 1400
+            elo_changes[player_name] = 0
 
         for i in range(9, match_data.shape[1], 2):
             if i + 1 < match_data.shape[1]:
@@ -43,20 +45,26 @@ def update_elo_ratings_from_matches(match_data_path, elo_json_path, new_elo_json
                 opponent_name = player_number_to_name.get(opponent_number)
 
                 if opponent_name and opponent_name in initial_player_ratings:
-                    player_rating = initial_player_ratings[player_name]
                     opponent_rating = initial_player_ratings[opponent_name]
-                    # if player_name =='':
-                    #     print(player_name, opponent_number, opponent_name)
-                    #     print(player_rating, opponent_rating)
+                else:
+                    if opponent_name:
+                        initial_player_ratings[opponent_name] = 1400
+                        elo_changes[opponent_name] = 0
+                    opponent_rating = 1400
 
-                    expected_player, _ = calculate_expected_score(player_rating, opponent_rating)
-                    actual_player = 1 if result == 'O' else 0
+                player_rating = initial_player_ratings[player_name]
+                
+                # if player_name =='':
+                #     print(player_name, opponent_number, opponent_name)
+                #     print(player_rating, opponent_rating)
 
-                    # 計算評分變化量而不是直接更新評分
-                    change = update_elo(player_rating, expected_player, actual_player) - player_rating
-                    elo_changes[player_name] += change
+                expected_player, _ = calculate_expected_score(player_rating, opponent_rating)
+                actual_player = 1 if result == 'O' else 0
 
-    print (elo_changes)
+                # 計算評分變化量而不是直接更新評分
+                change = update_elo(player_rating, expected_player, actual_player) - player_rating
+                elo_changes[player_name] += change
+    print(elo_changes)
     
     # 更新ELO評分
     updated_player_ratings = {player: initial_player_ratings[player] + elo_changes[player] for player in initial_player_ratings}
@@ -71,6 +79,7 @@ def update_elo_ratings_from_matches(match_data_path, elo_json_path, new_elo_json
 # 測試
 match_data_path = './game.xlsx'
 elo_json_path = './elo.json'
+new_elo_json_path = './new.json'
 
-updated_ratings = update_elo_ratings_from_matches(match_data_path, elo_json_path)
+updated_ratings = update_elo_ratings_from_matches(match_data_path, elo_json_path, new_elo_json_path)
 # print(updated_ratings)
